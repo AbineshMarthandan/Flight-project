@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useMultiCitySearchStore } from '@/stores/multiCitySearch'
+import FlightDetailResult from './FlightDetailResult.vue'
 
 const store = useMultiCitySearchStore()
 const copied = ref(false)
@@ -26,6 +27,8 @@ async function copyCartId() {
       </button>
     </p>
     <p v-if="store.cartError" class="cart__error">{{ store.cartError }}</p>
+
+    <FlightDetailResult v-if="store.cartResponse" class="cart__response" :detail="store.cartResponse" title="Add to cart response" />
   </div>
 </template>
 
@@ -34,14 +37,23 @@ async function copyCartId() {
   margin-top: 0.5rem;
 }
 .cart__btn {
-  padding: 0.55rem 1.1rem;
-  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-md);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
-  background: #16a34a;
+  background: var(--color-success);
   color: #fff;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+.cart__btn:not(:disabled):hover {
+  background: #128a3e;
+  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.28);
+  transform: translateY(-1px);
 }
 .cart__btn:disabled {
   background: #86efac;
@@ -53,10 +65,10 @@ async function copyCartId() {
   gap: 0.5rem;
   margin-top: 0.6rem;
   padding: 0.6rem 0.9rem;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  color: #166534;
-  border-radius: 8px;
+  background: var(--color-success-soft);
+  border: 1px solid var(--color-success-border);
+  color: var(--color-success-dark);
+  border-radius: var(--radius-md);
   font-size: 0.85rem;
 }
 .cart__copy {
@@ -66,13 +78,14 @@ async function copyCartId() {
   width: 1.6rem;
   height: 1.6rem;
   padding: 0;
-  border: 1px solid #bbf7d0;
-  border-radius: 6px;
-  background: #fff;
-  color: #166534;
+  border: 1px solid var(--color-success-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-success-dark);
   cursor: pointer;
   font-size: 0.85rem;
   line-height: 1;
+  transition: background 0.15s ease;
 }
 .cart__copy:hover {
   background: #dcfce7;
@@ -80,10 +93,13 @@ async function copyCartId() {
 .cart__error {
   margin-top: 0.6rem;
   padding: 0.6rem 0.9rem;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #b91c1c;
-  border-radius: 8px;
+  background: var(--color-danger-soft);
+  border: 1px solid var(--color-danger-border);
+  color: var(--color-danger-dark);
+  border-radius: var(--radius-md);
   font-size: 0.85rem;
+}
+.cart__response {
+  margin-top: 0.75rem;
 }
 </style>

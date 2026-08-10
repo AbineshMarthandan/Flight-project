@@ -33,7 +33,8 @@ defineProps({
   align-items: center;
   gap: 0.6rem;
   font-size: 0.85rem;
-  color: #9ca3af;
+  color: var(--color-text-subtle);
+  transition: color 0.15s ease;
 }
 .steps__icon {
   display: inline-flex;
@@ -42,35 +43,38 @@ defineProps({
   width: 1.4rem;
   height: 1.4rem;
   border-radius: 50%;
-  background: #f3f4f6;
+  background: var(--color-border-soft);
   font-size: 0.75rem;
   flex-shrink: 0;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 .steps__item--active {
-  color: #4338ca;
+  color: var(--color-accent);
   font-weight: 600;
 }
 .steps__item--active .steps__icon {
-  background: #eef2ff;
-  color: #4338ca;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
 }
 .steps__item--done {
-  color: #16a34a;
+  color: var(--color-success);
 }
 .steps__item--done .steps__icon {
   background: #dcfce7;
-  color: #16a34a;
+  color: var(--color-success);
 }
 .steps__item--error {
-  color: #dc2626;
+  color: var(--color-danger);
   font-weight: 600;
 }
 .steps__item--error .steps__icon {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
 }
 .steps__error {
-  color: #dc2626;
+  color: var(--color-danger);
   font-weight: 400;
   font-size: 0.75rem;
 }

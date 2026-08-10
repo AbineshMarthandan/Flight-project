@@ -68,10 +68,11 @@ function onSubmit() {
 
 <style scoped>
 .search-form {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 1.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  padding: 1.5rem;
 }
 .search-form__passengers {
   display: flex;
@@ -79,7 +80,7 @@ function onSubmit() {
   gap: 1rem;
   margin-bottom: 1rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border-soft);
 }
 .search-form__passengers label {
   display: flex;
@@ -91,34 +92,53 @@ function onSubmit() {
 .search-form__passengers input,
 .search-form__passengers select {
   width: 6rem;
-  padding: 0.4rem 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s ease;
+}
+.search-form__passengers input:focus,
+.search-form__passengers select:focus {
+  outline: none;
+  border-color: var(--color-accent);
 }
 .search-form__actions {
   display: flex;
   justify-content: space-between;
-  margin-top: 1rem;
+  margin-top: 1.25rem;
 }
 .btn {
-  padding: 0.55rem 1.1rem;
-  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-md);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 .btn--primary {
-  background: #4338ca;
+  background: var(--color-accent);
   color: #fff;
 }
+.btn--primary:not(:disabled):hover {
+  background: var(--color-accent-hover);
+  box-shadow: 0 6px 16px rgba(67, 56, 202, 0.28);
+  transform: translateY(-1px);
+}
 .btn--primary:disabled {
-  background: #a5a6f0;
+  background: var(--color-accent-disabled);
   cursor: not-allowed;
 }
 .btn--ghost {
-  background: #fff;
-  border-color: #d1d5db;
-  color: #374151;
+  background: var(--color-surface);
+  border-color: var(--color-input-border);
+  color: var(--color-text-body);
+}
+.btn--ghost:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 </style>

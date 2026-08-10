@@ -52,8 +52,8 @@ defineEmits(['remove'])
   width: 1.5rem;
   height: 1.5rem;
   border-radius: 50%;
-  background: #eef2ff;
-  color: #4338ca;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
   font-size: 0.75rem;
   font-weight: 600;
   flex-shrink: 0;
@@ -61,37 +61,46 @@ defineEmits(['remove'])
 .route-row__input {
   flex: 1;
   min-width: 0;
-  padding: 0.5rem 0.6rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-sm);
   font-size: 0.9rem;
+  transition: border-color 0.15s ease;
+}
+.route-row__input:focus {
+  outline: none;
+  border-color: var(--color-accent);
 }
 .route-row__input--date {
   flex: 1.2;
 }
 .route-row__arrow {
-  color: #9ca3af;
+  color: var(--color-text-subtle);
   flex-shrink: 0;
 }
 .route-row__remove {
   flex-shrink: 0;
   width: 1.75rem;
   height: 1.75rem;
-  border-radius: 6px;
-  border: 1px solid #d1d5db;
-  background: #fff;
-  color: #6b7280;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-input-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
   cursor: pointer;
   font-size: 1rem;
   line-height: 1;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 .route-row__remove:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 .route-row__remove:not(:disabled):hover {
-  background: #fee2e2;
-  border-color: #fca5a5;
-  color: #b91c1c;
+  background: var(--color-danger-soft);
+  border-color: var(--color-danger-border);
+  color: var(--color-danger-dark);
 }
 </style>

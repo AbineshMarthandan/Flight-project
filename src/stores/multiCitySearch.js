@@ -77,6 +77,7 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
     error: null,
     addingToCart: false,
     cartId: null,
+    cartResponse: null,
     cartError: null,
   }),
   actions: {
@@ -102,6 +103,7 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
       this.error = null
       this.addingToCart = false
       this.cartId = null
+      this.cartResponse = null
       this.cartError = null
     },
     async run() {
@@ -198,6 +200,7 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
       this.addingToCart = true
       this.cartError = null
       this.cartId = null
+      this.cartResponse = null
       try {
         const cartDetails = this.legs.map((leg) => ({
           flightId: leg.flightId,
@@ -209,6 +212,7 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
         }))
         const res = await addToCartApi({ cartDetails, currency: 'IDR' })
         this.cartId = res.data.cartId
+        this.cartResponse = res.data
       } catch (err) {
         this.cartError = err.message || 'Failed to add to cart'
       } finally {

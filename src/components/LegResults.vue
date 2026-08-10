@@ -48,10 +48,11 @@ function formatPrice(value) {
   gap: 0.75rem;
 }
 .leg-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 0.9rem 1rem;
-  background: #fafafa;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.1rem;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
 }
 .leg-card__route {
   display: flex;
@@ -62,8 +63,8 @@ function formatPrice(value) {
 }
 .leg-card__badge {
   font-size: 0.7rem;
-  color: #4338ca;
-  background: #eef2ff;
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
 }
@@ -72,7 +73,7 @@ function formatPrice(value) {
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.4rem 1rem;
   font-size: 0.85rem;
-  color: #374151;
+  color: var(--color-text-body);
 }
 .leg-card__grid > div {
   /* grid items default to min-width: auto, which lets an unbroken token
@@ -82,7 +83,7 @@ function formatPrice(value) {
 .leg-card__label {
   display: block;
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: var(--color-text-subtle);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
