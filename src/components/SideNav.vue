@@ -27,6 +27,34 @@
         Cart
       </RouterLink>
     </nav>
+
+    <div class="side-nav__group">
+      <p class="side-nav__group-label">Ancillary</p>
+      <RouterLink to="/ancillary/baggage" class="side-nav__link side-nav__link--sub" active-class="side-nav__link--active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="7" width="18" height="13" rx="2" />
+          <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+        </svg>
+        Baggage V2
+      </RouterLink>
+      <RouterLink to="/ancillary/meal" class="side-nav__link side-nav__link--sub" active-class="side-nav__link--active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+        Meal V2
+      </RouterLink>
+      <RouterLink to="/ancillary/seat" class="side-nav__link side-nav__link--sub" active-class="side-nav__link--active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 11V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6" />
+          <path d="M4 11h16a1 1 0 0 1 1 1v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a1 1 0 0 1 1-1z" />
+          <path d="M6 20v-3" />
+          <path d="M18 20v-3" />
+        </svg>
+        Seat V2
+      </RouterLink>
+    </div>
   </aside>
 </template>
 
@@ -110,5 +138,24 @@
   background: var(--color-accent);
   color: #fff;
   box-shadow: var(--shadow-sm);
+}
+
+.side-nav__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.side-nav__group-label {
+  margin: 0 0 0.4rem;
+  padding: 0 0.75rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(154, 160, 195, 0.65);
+}
+.side-nav__link--sub {
+  padding-left: 1.5rem;
+  font-size: 0.84rem;
 }
 </style>

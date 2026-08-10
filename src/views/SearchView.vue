@@ -4,6 +4,7 @@ import MultiCitySearchForm from '@/components/MultiCitySearchForm.vue'
 import SearchSteps from '@/components/SearchSteps.vue'
 import LegResults from '@/components/LegResults.vue'
 import FlightDetailResult from '@/components/FlightDetailResult.vue'
+import FlightPicker from '@/components/FlightPicker.vue'
 
 const store = useMultiCitySearchStore()
 </script>
@@ -17,6 +18,10 @@ const store = useMultiCitySearchStore()
     </section>
 
     <p v-if="store.status === 'error'" class="view-error">{{ store.error }}</p>
+
+    <section v-if="store.status === 'awaiting-selection'" class="view-section">
+      <FlightPicker :candidates="store.candidates" :segment="store.currentSegment" @select="store.selectFlight" />
+    </section>
 
     <section v-if="store.legs.length" class="view-section">
       <h2>Selected flights</h2>

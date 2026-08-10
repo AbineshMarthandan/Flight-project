@@ -48,6 +48,33 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/cart/, '/tix-flight-cart'),
         configure: trustOrigin('http://localhost:8880'),
       },
+      // Ancillary API — baggage. Named '-baggage' (not the bare '/api/ancillary')
+      // because Vite's proxy matches by string prefix in definition order: a
+      // bare '/api/ancillary' key is also a prefix of '/api/ancillary-meal' and
+      // '/api/ancillary-seat' below, so it would intercept their requests first
+      // and mangle the rewritten path (e.g. '/tix-flight-ancillary-meal/...').
+      '/api/ancillary-baggage': {
+        target: 'http://localhost:8888',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/ancillary-baggage/, '/tix-flight-ancillary'),
+        configure: trustOrigin('http://localhost:8888'),
+      },
+      // Ancillary API — meals. Separate port from baggage above.
+      '/api/ancillary-meal': {
+        target: 'http://localhost:8888',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/ancillary-meal/, '/tix-flight-ancillary'),
+        configure: trustOrigin('http://localhost:8888'),
+      },
+      // Ancillary API — seats. Same host as meals (confirmed by matching
+      // "X-Currency cannot be blank" behavior), kept as its own entry so each
+      // ancillary feature can point elsewhere independently if that changes.
+      '/api/ancillary-seat': {
+        target: 'http://localhost:8888',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/ancillary-seat/, '/tix-flight-ancillary'),
+        configure: trustOrigin('http://localhost:8888'),
+      },
     },
   },
 })

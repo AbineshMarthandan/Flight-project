@@ -1,31 +1,28 @@
 import { defineStore } from 'pinia'
 import { searchMultiCity, streamLeg, searchNextLeg, getFlightDetail } from '@/api/flightSearch'
-import { addToCart as addToCartApi } from '@/api/flightCart'
+import { addToCart as addToCartApi, getCart } from '@/api/flightCart'
+import { getBaggageSelection, getMealsSelection, getSeatsSelection } from '@/api/flightAncillary'
 
 function emptyRoute() {
   return { origin: '', destination: '', departureDate: '' }
 }
 
-function pickFlight(departureFlights, filters) {
-  if (!departureFlights?.length) return null
+function filterCandidates(departureFlights, filters) {
+  if (!departureFlights?.length) return []
 
   const wantsComboMC = !!filters?.comboMC
   const supplierNeedle = filters?.supplierEnabled ? filters.supplier.trim().toLowerCase() : ''
 
-  if (wantsComboMC || supplierNeedle) {
-    return (
-      departureFlights.find((f) => {
-        if (wantsComboMC && f.comboMC !== true) return false
-        if (supplierNeedle && !JSON.stringify(f).toLowerCase().includes(supplierNeedle)) return false
-        return true
-      }) ?? null
-    )
-  }
+  if (!wantsComboMC && !supplierNeedle) return departureFlights
 
-  return departureFlights.find((f) => f.comboMC === false) ?? departureFlights[0]
+  return departureFlights.filter((f) => {
+    if (wantsComboMC && f.comboMC !== true) return false
+    if (supplierNeedle && !JSON.stringify(f).toLowerCase().includes(supplierNeedle)) return false
+    return true
+  })
 }
 
-// Called only when pickFlight() found nothing, to explain which of the
+// Called only when filterCandidates() found nothing, to explain which of the
 // active filters (alone or in combination) is responsible.
 function describeFilterMismatch(departureFlights, filters) {
   const parts = []
@@ -53,6 +50,7 @@ function buildSteps(legCount) {
   for (let i = 1; i <= legCount; i++) {
     if (i > 1) steps.push({ key: `search-${i}`, label: `Search leg ${i}`, status: 'pending' })
     steps.push({ key: `stream-${i}`, label: `Stream leg ${i}`, status: 'pending' })
+    steps.push({ key: `select-${i}`, label: `Choose leg ${i} flight`, status: 'pending' })
   }
   steps.push({ key: 'detail', label: 'Flight detail', status: 'pending' })
   return steps
@@ -64,21 +62,39 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
     child: 0,
     infant: 0,
     cabinClass: 'ECONOMY',
-    routes: [emptyRoute(), emptyRoute()],
+    routes: [
+      { origin: 'CGK', destination: 'KUL', departureDate: '2026-11-10' },
+      { origin: 'KUL', destination: 'SIN', departureDate: '2026-11-11' },
+    ],
     filters: {
       comboMC: false,
       supplierEnabled: false,
       supplier: '',
     },
-    status: 'idle', // idle | running | done | error
+    status: 'idle', // idle | running | awaiting-selection | done | error
     steps: [],
     legs: [],
+    currentSegment: 0,
+    candidates: [],
+    requestItems: null,
     flightDetail: null,
     error: null,
     addingToCart: false,
     cartId: null,
     cartResponse: null,
     cartError: null,
+    cartFetchLoading: false,
+    cartFetchResponse: null,
+    cartFetchError: null,
+    baggageLoading: false,
+    baggageResponse: null,
+    baggageError: null,
+    mealLoading: false,
+    mealResponse: null,
+    mealError: null,
+    seatLoading: false,
+    seatResponse: null,
+    seatError: null,
   }),
   actions: {
     addRoute() {
@@ -95,105 +111,135 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
         if (error) step.error = error
       }
     },
+    passengers() {
+      return { adult: this.adult, child: this.child, infant: this.infant }
+    },
     reset() {
       this.status = 'idle'
       this.steps = []
       this.legs = []
+      this.currentSegment = 0
+      this.candidates = []
+      this.requestItems = null
       this.flightDetail = null
       this.error = null
       this.addingToCart = false
       this.cartId = null
       this.cartResponse = null
       this.cartError = null
+      this.cartFetchLoading = false
+      this.cartFetchResponse = null
+      this.cartFetchError = null
     },
-    async run() {
+    fail(err) {
+      const activeStep = this.steps.find((s) => s.status === 'active')
+      if (activeStep) this.setStepStatus(activeStep.key, 'error', err.message)
+      this.error = err.message || 'Something went wrong'
+      this.status = 'error'
+    },
+    async startSearch() {
       this.reset()
       this.status = 'running'
       this.steps = buildSteps(this.routes.length)
 
-      const passengers = { adult: this.adult, child: this.child, infant: this.infant }
-
       try {
         this.setStepStatus('search', 'active')
         const searchRes = await searchMultiCity({
-          ...passengers,
+          ...this.passengers(),
           cabinClass: this.cabinClass,
           routes: this.routes,
         })
         this.setStepStatus('search', 'done')
+        this.requestItems = searchRes.data.requestItems
 
-        let requestItems = searchRes.data.requestItems
-
-        for (let segment = 1; segment <= this.routes.length; segment++) {
-          if (segment > 1) {
-            const stepKey = `search-${segment}`
-            this.setStepStatus(stepKey, 'active')
-            const flightDetails = this.legs.map((leg) => ({
-              segment: leg.segment,
-              paxPrice: leg.paxPrice,
-              flightId: leg.flightId,
-              comboMC: leg.comboMC,
-              supplierId: leg.supplierId,
-              departureTime: leg.departureTime,
-              arrivalTime: leg.arrivalTime,
-            }))
-            const nextRes = await searchNextLeg({
-              segment,
-              cabinClass: this.cabinClass,
-              flightDetails,
-              allRoutes: this.routes,
-              ...passengers,
-            })
-            requestItems = nextRes.data.requestItems
-            this.setStepStatus(stepKey, 'done')
-          }
-
-          const streamKey = `stream-${segment}`
-          this.setStepStatus(streamKey, 'active')
-          const streamRes = await streamLeg(requestItems)
-          const departureFlights = streamRes.data.searchList.departureFlights
-          const flight = pickFlight(departureFlights, this.filters)
-          if (!flight) {
-            const filtersActive = this.filters.comboMC || (this.filters.supplierEnabled && this.filters.supplier.trim())
-            throw new Error(
-              filtersActive
-                ? `No flight matched the selected filters for leg ${segment}: ${describeFilterMismatch(departureFlights, this.filters)}`
-                : `No flights returned for leg ${segment}`,
-            )
-          }
-          this.legs.push({
-            segment,
-            flightId: flight.flightId,
-            supplierId: flight.supplierId,
-            comboMC: flight.comboMC,
-            paxPrice: flight.trackerProperties?.price,
-            departureTime: flight.card?.departure?.time,
-            arrivalTime: flight.card?.arrival?.time,
-            route: this.routes[segment - 1],
-          })
-          this.setStepStatus(streamKey, 'done')
-        }
-
-        this.setStepStatus('detail', 'active')
-        const details = this.legs.map((leg) => ({
-          flightId: leg.flightId,
-          comboMC: leg.comboMC,
-          supplierId: leg.supplierId,
-          fullRefundReschedule: false,
-          fullRefundCredentialCode: '',
-          fareBasisCode: '',
-          journeyType: 'DEPARTURE',
-        }))
-        const detailRes = await getFlightDetail(details)
-        this.flightDetail = detailRes.data
-        this.setStepStatus('detail', 'done')
-
-        this.status = 'done'
+        await this.streamSegment(1)
       } catch (err) {
-        const activeStep = this.steps.find((s) => s.status === 'active')
-        if (activeStep) this.setStepStatus(activeStep.key, 'error', err.message)
-        this.error = err.message || 'Something went wrong'
-        this.status = 'error'
+        this.fail(err)
+      }
+    },
+    // Streams a leg's flight list and pauses for manual selection instead of
+    // auto-picking one — the user chooses which flight to proceed with.
+    async streamSegment(segment) {
+      const streamKey = `stream-${segment}`
+      this.setStepStatus(streamKey, 'active')
+      const streamRes = await streamLeg(this.requestItems)
+      const departureFlights = streamRes.data.searchList.departureFlights
+      const candidates = filterCandidates(departureFlights, this.filters)
+
+      if (!candidates.length) {
+        const filtersActive = this.filters.comboMC || (this.filters.supplierEnabled && this.filters.supplier.trim())
+        throw new Error(
+          filtersActive
+            ? `No flight matched the selected filters for leg ${segment}: ${describeFilterMismatch(departureFlights, this.filters)}`
+            : `No flights returned for leg ${segment}`,
+        )
+      }
+
+      this.setStepStatus(streamKey, 'done')
+      this.currentSegment = segment
+      this.candidates = candidates
+      this.setStepStatus(`select-${segment}`, 'active')
+      this.status = 'awaiting-selection'
+    },
+    async selectFlight(flight) {
+      const segment = this.currentSegment
+      this.legs.push({
+        segment,
+        flightId: flight.flightId,
+        supplierId: flight.supplierId,
+        comboMC: flight.comboMC,
+        paxPrice: flight.trackerProperties?.price,
+        departureTime: flight.card?.departure?.time,
+        arrivalTime: flight.card?.arrival?.time,
+        route: this.routes[segment - 1],
+      })
+      this.setStepStatus(`select-${segment}`, 'done')
+      this.candidates = []
+      this.status = 'running'
+
+      try {
+        if (segment < this.routes.length) {
+          const nextSegment = segment + 1
+          const stepKey = `search-${nextSegment}`
+          this.setStepStatus(stepKey, 'active')
+          const flightDetails = this.legs.map((leg) => ({
+            segment: leg.segment,
+            paxPrice: leg.paxPrice,
+            flightId: leg.flightId,
+            comboMC: leg.comboMC,
+            supplierId: leg.supplierId,
+            departureTime: leg.departureTime,
+            arrivalTime: leg.arrivalTime,
+          }))
+          const nextRes = await searchNextLeg({
+            segment: nextSegment,
+            cabinClass: this.cabinClass,
+            flightDetails,
+            allRoutes: this.routes,
+            ...this.passengers(),
+          })
+          this.requestItems = nextRes.data.requestItems
+          this.setStepStatus(stepKey, 'done')
+
+          await this.streamSegment(nextSegment)
+        } else {
+          this.setStepStatus('detail', 'active')
+          const details = this.legs.map((leg) => ({
+            flightId: leg.flightId,
+            comboMC: leg.comboMC,
+            supplierId: leg.supplierId,
+            fullRefundReschedule: false,
+            fullRefundCredentialCode: '',
+            fareBasisCode: '',
+            journeyType: 'DEPARTURE',
+          }))
+          const detailRes = await getFlightDetail(details)
+          this.flightDetail = detailRes.data
+          this.setStepStatus('detail', 'done')
+          this.status = 'done'
+        }
+      } catch (err) {
+        this.fail(err)
       }
     },
     async addToCart() {
@@ -217,6 +263,74 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
         this.cartError = err.message || 'Failed to add to cart'
       } finally {
         this.addingToCart = false
+      }
+    },
+    async fetchCart() {
+      if (!this.cartId) {
+        this.cartFetchError = 'No cart ID yet — add a flight to your cart first.'
+        return
+      }
+      this.cartFetchLoading = true
+      this.cartFetchError = null
+      this.cartFetchResponse = null
+      try {
+        const res = await getCart(this.cartId)
+        this.cartFetchResponse = res.data
+      } catch (err) {
+        this.cartFetchError = err.message || 'Failed to fetch cart'
+      } finally {
+        this.cartFetchLoading = false
+      }
+    },
+    async fetchBaggage() {
+      if (!this.cartId) {
+        this.baggageError = 'No cart ID yet — add a flight to your cart first.'
+        return
+      }
+      this.baggageLoading = true
+      this.baggageError = null
+      this.baggageResponse = null
+      try {
+        const res = await getBaggageSelection(this.cartId)
+        this.baggageResponse = res.data
+      } catch (err) {
+        this.baggageError = err.message || 'Failed to fetch baggage options'
+      } finally {
+        this.baggageLoading = false
+      }
+    },
+    async fetchMeals() {
+      if (!this.cartId) {
+        this.mealError = 'No cart ID yet — add a flight to your cart first.'
+        return
+      }
+      this.mealLoading = true
+      this.mealError = null
+      this.mealResponse = null
+      try {
+        const res = await getMealsSelection(this.cartId)
+        this.mealResponse = res.data
+      } catch (err) {
+        this.mealError = err.message || 'Failed to fetch meal options'
+      } finally {
+        this.mealLoading = false
+      }
+    },
+    async fetchSeats() {
+      if (!this.cartId) {
+        this.seatError = 'No cart ID yet — add a flight to your cart first.'
+        return
+      }
+      this.seatLoading = true
+      this.seatError = null
+      this.seatResponse = null
+      try {
+        const res = await getSeatsSelection(this.cartId)
+        this.seatResponse = res.data
+      } catch (err) {
+        this.seatError = err.message || 'Failed to fetch seat options'
+      } finally {
+        this.seatLoading = false
       }
     },
   },

@@ -12,9 +12,13 @@ function isValid() {
   )
 }
 
+function isBusy() {
+  return store.status === 'running' || store.status === 'awaiting-selection'
+}
+
 function onSubmit() {
-  if (!isValid() || store.status === 'running') return
-  store.run()
+  if (!isValid() || isBusy()) return
+  store.startSearch()
 }
 </script>
 
@@ -59,8 +63,8 @@ function onSubmit() {
 
     <div class="search-form__actions">
       <button type="button" class="btn btn--ghost" @click="store.addRoute">+ Add leg</button>
-      <button type="submit" class="btn btn--primary" :disabled="!isValid() || store.status === 'running'">
-        {{ store.status === 'running' ? 'Searching…' : 'Search flights' }}
+      <button type="submit" class="btn btn--primary" :disabled="!isValid() || isBusy()">
+        {{ isBusy() ? 'Searching…' : 'Search flights' }}
       </button>
     </div>
   </form>

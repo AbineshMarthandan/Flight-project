@@ -29,6 +29,21 @@ async function copyCartId() {
     <p v-if="store.cartError" class="cart__error">{{ store.cartError }}</p>
 
     <FlightDetailResult v-if="store.cartResponse" class="cart__response" :detail="store.cartResponse" title="Add to cart response" />
+
+    <div v-if="store.cartId" class="cart__get">
+      <button type="button" class="cart__get-btn" :disabled="store.cartFetchLoading" @click="store.fetchCart()">
+        {{ store.cartFetchLoading ? 'Loading…' : 'Get cart' }}
+      </button>
+
+      <p v-if="store.cartFetchError" class="cart__error">{{ store.cartFetchError }}</p>
+
+      <FlightDetailResult
+        v-if="store.cartFetchResponse"
+        class="cart__response"
+        :detail="store.cartFetchResponse"
+        title="Get cart response"
+      />
+    </div>
   </div>
 </template>
 
@@ -101,5 +116,33 @@ async function copyCartId() {
 }
 .cart__response {
   margin-top: 0.75rem;
+}
+.cart__get {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border-soft);
+}
+.cart__get-btn {
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: var(--color-accent);
+  color: #fff;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+.cart__get-btn:not(:disabled):hover {
+  background: var(--color-accent-hover);
+  box-shadow: 0 6px 16px rgba(67, 56, 202, 0.28);
+  transform: translateY(-1px);
+}
+.cart__get-btn:disabled {
+  background: var(--color-accent-disabled);
+  cursor: not-allowed;
 }
 </style>

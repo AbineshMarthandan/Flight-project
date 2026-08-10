@@ -2,6 +2,12 @@ const BASE_URL = '/api/flight'
 
 export const CART_BASE_URL = '/api/cart'
 
+export const ANCILLARY_BASE_URL = '/api/ancillary-baggage'
+
+export const ANCILLARY_MEAL_BASE_URL = '/api/ancillary-meal'
+
+export const ANCILLARY_SEAT_BASE_URL = '/api/ancillary-seat'
+
 export class ApiError extends Error {
   constructor(message, { status, body, cause } = {}) {
     super(message)
@@ -45,6 +51,34 @@ export async function postJson(path, body, { baseUrl = BASE_URL } = {}) {
   } catch (cause) {
     // fetch() rejects with a TypeError for network failures, blocked mixed
     // content, and CORS rejections alike, and never exposes which one.
+    throw new ApiError(
+      `Network/CORS error calling ${path}. If the API host is not proxied, add it to the Vite dev server proxy in vite.config.js.`,
+      { cause },
+    )
+  }
+
+  const text = await response.text()
+  const json = text ? JSON.parse(text) : null
+
+  if (!response.ok) {
+    throw new ApiError(json?.message || `Request to ${path} failed with status ${response.status}`, {
+      status: response.status,
+      body: json,
+    })
+  }
+
+  return json
+}
+
+export async function getJson(path, { baseUrl = BASE_URL, params, headers } = {}) {
+  const query = params ? `?${new URLSearchParams(params).toString()}` : ''
+  let response
+  try {
+    response = await fetch(`${baseUrl}${path}${query}`, {
+      method: 'GET',
+      headers: { accept: 'application/json', ...headers },
+    })
+  } catch (cause) {
     throw new ApiError(
       `Network/CORS error calling ${path}. If the API host is not proxied, add it to the Vite dev server proxy in vite.config.js.`,
       { cause },
