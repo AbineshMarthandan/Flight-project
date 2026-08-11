@@ -4,38 +4,105 @@ import { addToCart as addToCartApi, getCart } from '@/api/flightCart'
 import { getBaggageSelection, getMealsSelection, getSeatsSelection } from '@/api/flightAncillary'
 
 function emptyRoute() {
-  return { origin: '', destination: '', departureDate: '' }
+  return { origin: '', destination: '', departureDate: '', comboMC: false }
 }
 
-function filterCandidates(departureFlights, filters) {
+// Reference chains built only from the origin/destination pairs actually
+// supported (per the routes we've been given). Only CGK, DPS, SUB and UPG
+// ever appear as an origin in that list, and DPS<->SUB is the only pair that
+// links back to each other — so chains longer than 4 legs must revisit DPS/SUB
+// to keep every leg on a supported route; there's no way around that with
+// this route set.
+const REFERENCE_CHAINS = {
+  2: [
+    ['CGK', 'KUL'],
+    ['KUL', 'SIN'],
+  ],
+  3: [
+    ['CGK', 'KUL'],
+    ['KUL', 'SIN'],
+    ['SIN', 'CGK'],
+  ],
+  4: [
+    ['CGK', 'DPS'],
+    ['DPS', 'SUB'],
+    ['SUB', 'UPG'],
+    ['UPG', 'BPN'],
+  ],
+  5: [
+    ['CGK', 'DPS'],
+    ['DPS', 'SUB'],
+    ['SUB', 'DPS'],
+    ['DPS', 'UPG'],
+    ['UPG', 'BPN'],
+  ],
+  6: [
+    ['CGK', 'DPS'],
+    ['DPS', 'SUB'],
+    ['SUB', 'DPS'],
+    ['DPS', 'SUB'],
+    ['SUB', 'UPG'],
+    ['UPG', 'KNO'],
+  ],
+  7: [
+    ['CGK', 'DPS'],
+    ['DPS', 'SUB'],
+    ['SUB', 'DPS'],
+    ['DPS', 'SUB'],
+    ['SUB', 'DPS'],
+    ['DPS', 'UPG'],
+    ['UPG', 'BPN'],
+  ],
+}
+
+function buildReferenceRoutes(count) {
+  return REFERENCE_CHAINS[count].map(([origin, destination], i) => ({
+    origin,
+    destination,
+    departureDate: `2026-11-${String(i + 1).padStart(2, '0')}`,
+    comboMC: false,
+  }))
+}
+
+// Splits a comma-separated "airasia, sabre" style input into trimmed,
+// lowercased, non-empty terms.
+function parseSupplierTerms(supplierText) {
+  return supplierText
+    .split(',')
+    .map((term) => term.trim().toLowerCase())
+    .filter(Boolean)
+}
+
+function matchesAnySupplierTerm(flight, supplierTerms) {
+  if (!supplierTerms.length) return true
+  const haystack = JSON.stringify(flight).toLowerCase()
+  return supplierTerms.some((term) => haystack.includes(term))
+}
+
+function filterCandidates(departureFlights, { wantsComboMC, supplierTerms }) {
   if (!departureFlights?.length) return []
 
-  const wantsComboMC = !!filters?.comboMC
-  const supplierNeedle = filters?.supplierEnabled ? filters.supplier.trim().toLowerCase() : ''
-
-  if (!wantsComboMC && !supplierNeedle) return departureFlights
+  if (!wantsComboMC && !supplierTerms.length) return departureFlights
 
   return departureFlights.filter((f) => {
     if (wantsComboMC && f.comboMC !== true) return false
-    if (supplierNeedle && !JSON.stringify(f).toLowerCase().includes(supplierNeedle)) return false
+    if (!matchesAnySupplierTerm(f, supplierTerms)) return false
     return true
   })
 }
 
 // Called only when filterCandidates() found nothing, to explain which of the
 // active filters (alone or in combination) is responsible.
-function describeFilterMismatch(departureFlights, filters) {
+function describeFilterMismatch(departureFlights, { wantsComboMC, supplierText, supplierTerms }) {
   const parts = []
 
-  if (filters.comboMC) {
+  if (wantsComboMC) {
     const count = departureFlights.filter((f) => f.comboMC === true).length
     parts.push(`"Combo MC only" alone matches ${count} flight(s)`)
   }
 
-  const supplierText = filters.supplierEnabled ? filters.supplier.trim() : ''
-  if (supplierText) {
-    const needle = supplierText.toLowerCase()
-    const count = departureFlights.filter((f) => JSON.stringify(f).toLowerCase().includes(needle)).length
+  if (supplierTerms.length) {
+    const count = departureFlights.filter((f) => matchesAnySupplierTerm(f, supplierTerms)).length
     parts.push(`"Supplier contains ‘${supplierText}’" alone matches ${count} flight(s)`)
   }
 
@@ -62,12 +129,8 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
     child: 0,
     infant: 0,
     cabinClass: 'ECONOMY',
-    routes: [
-      { origin: 'CGK', destination: 'KUL', departureDate: '2026-11-10' },
-      { origin: 'KUL', destination: 'SIN', departureDate: '2026-11-11' },
-    ],
+    routes: buildReferenceRoutes(2),
     filters: {
-      comboMC: false,
       supplierEnabled: false,
       supplier: '',
     },
@@ -103,6 +166,9 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
     removeRoute(index) {
       if (this.routes.length <= 2) return
       this.routes.splice(index, 1)
+    },
+    setRouteCount(count) {
+      this.routes = buildReferenceRoutes(count)
     },
     setStepStatus(key, status, error) {
       const step = this.steps.find((s) => s.key === key)
@@ -164,13 +230,18 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
       this.setStepStatus(streamKey, 'active')
       const streamRes = await streamLeg(this.requestItems)
       const departureFlights = streamRes.data.searchList.departureFlights
-      const candidates = filterCandidates(departureFlights, this.filters)
+
+      const wantsComboMC = !!this.routes[segment - 1]?.comboMC
+      const supplierText = this.filters.supplierEnabled ? this.filters.supplier.trim() : ''
+      const supplierTerms = parseSupplierTerms(supplierText)
+
+      const candidates = filterCandidates(departureFlights, { wantsComboMC, supplierTerms })
 
       if (!candidates.length) {
-        const filtersActive = this.filters.comboMC || (this.filters.supplierEnabled && this.filters.supplier.trim())
+        const filtersActive = wantsComboMC || supplierTerms.length > 0
         throw new Error(
           filtersActive
-            ? `No flight matched the selected filters for leg ${segment}: ${describeFilterMismatch(departureFlights, this.filters)}`
+            ? `No flight matched the selected filters for leg ${segment}: ${describeFilterMismatch(departureFlights, { wantsComboMC, supplierText, supplierTerms })}`
             : `No flights returned for leg ${segment}`,
         )
       }

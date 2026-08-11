@@ -9,41 +9,52 @@ defineEmits(['remove'])
 
 <template>
   <div class="route-row">
-    <span class="route-row__badge">{{ index + 1 }}</span>
-    <input
-      v-model="modelValue.origin"
-      class="route-row__input"
-      placeholder="Origin (e.g. CGK)"
-      maxlength="3"
-      @input="modelValue.origin = modelValue.origin.toUpperCase()"
-    />
-    <span class="route-row__arrow">&rarr;</span>
-    <input
-      v-model="modelValue.destination"
-      class="route-row__input"
-      placeholder="Destination (e.g. SIN)"
-      maxlength="3"
-      @input="modelValue.destination = modelValue.destination.toUpperCase()"
-    />
-    <input v-model="modelValue.departureDate" type="date" class="route-row__input route-row__input--date" />
-    <button
-      type="button"
-      class="route-row__remove"
-      :disabled="!removable"
-      title="Remove leg"
-      @click="$emit('remove')"
-    >
-      &times;
-    </button>
+    <div class="route-row__main">
+      <span class="route-row__badge">{{ index + 1 }}</span>
+      <input
+        v-model="modelValue.origin"
+        class="route-row__input"
+        placeholder="Origin (e.g. CGK)"
+        maxlength="3"
+        @input="modelValue.origin = modelValue.origin.toUpperCase()"
+      />
+      <span class="route-row__arrow">&rarr;</span>
+      <input
+        v-model="modelValue.destination"
+        class="route-row__input"
+        placeholder="Destination (e.g. SIN)"
+        maxlength="3"
+        @input="modelValue.destination = modelValue.destination.toUpperCase()"
+      />
+      <input v-model="modelValue.departureDate" type="date" class="route-row__input route-row__input--date" />
+      <button
+        type="button"
+        class="route-row__remove"
+        :disabled="!removable"
+        title="Remove leg"
+        @click="$emit('remove')"
+      >
+        &times;
+      </button>
+    </div>
+    <label class="route-row__combo">
+      <input v-model="modelValue.comboMC" type="checkbox" />
+      Combo MC only for this leg
+    </label>
   </div>
 </template>
 
 <style scoped>
 .route-row {
   display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.75rem;
+}
+.route-row__main {
+  display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
 }
 .route-row__badge {
   display: inline-flex;
@@ -102,5 +113,14 @@ defineEmits(['remove'])
   background: var(--color-danger-soft);
   border-color: var(--color-danger-border);
   color: var(--color-danger-dark);
+}
+.route-row__combo {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding-left: 2rem;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
 }
 </style>

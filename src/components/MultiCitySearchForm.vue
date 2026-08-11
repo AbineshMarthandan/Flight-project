@@ -26,6 +26,16 @@ function onSubmit() {
   <form class="search-form" @submit.prevent="onSubmit">
     <div class="search-form__passengers">
       <label>
+        Routes
+        <select
+          class="search-form__route-count"
+          :value="store.routes.length"
+          @change="store.setRouteCount(Number($event.target.value))"
+        >
+          <option v-for="n in [2, 3, 4, 5, 6, 7]" :key="n" :value="n">{{ n }} routes</option>
+        </select>
+      </label>
+      <label>
         Adult
         <input v-model.number="store.adult" type="number" min="1" max="9" />
       </label>
@@ -105,6 +115,9 @@ function onSubmit() {
 .search-form__passengers select:focus {
   outline: none;
   border-color: var(--color-accent);
+}
+.search-form__route-count {
+  width: 7.5rem;
 }
 .search-form__actions {
   display: flex;

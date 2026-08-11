@@ -34,6 +34,7 @@ function airlines(flight) {
         </div>
         <div class="picker__meta">
           <span>{{ airlines(flight) }}</span>
+          <span class="picker__supplier" :title="flight.supplierId">{{ flight.supplierId || '—' }}</span>
           <span v-if="flight.comboMC" class="picker__badge">Combo MC</span>
         </div>
         <div class="picker__price">{{ formatPrice(flight.trackerProperties?.price) }}</div>
@@ -112,6 +113,14 @@ function airlines(flight) {
   font-size: 0.8rem;
   color: var(--color-text-body);
   white-space: nowrap;
+}
+.picker__supplier {
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  cursor: help;
 }
 .picker__badge {
   font-size: 0.68rem;

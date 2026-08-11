@@ -9,11 +9,6 @@ const store = useMultiCitySearchStore()
     <span class="filters__title">Flight pick filters</span>
 
     <label class="filters__option">
-      <input v-model="store.filters.comboMC" type="checkbox" />
-      Combo MC only
-    </label>
-
-    <label class="filters__option">
       <input v-model="store.filters.supplierEnabled" type="checkbox" />
       Supplier contains
     </label>
@@ -21,7 +16,7 @@ const store = useMultiCitySearchStore()
       v-model="store.filters.supplier"
       type="text"
       class="filters__input"
-      placeholder="e.g. airasia"
+      placeholder="e.g. airasia, sabre"
       :disabled="!store.filters.supplierEnabled"
     />
   </div>
