@@ -1,0 +1,33 @@
+src/components/MultiCitySearchForm.vue
+  4e2021e877477dab 29-37,119-121
+src/components/FlightFilters.vue
+  4e2021e877477dab 19
+src/components/RouteRow.vue
+  4e2021e877477dab 12-43,50-54,117-125
+src/components/FlightDetailResult.vue
+  4e2021e877477dab 2-4,8-16,21-28,40-46,48,52-62,64-70
+src/stores/multiCitySearch.js
+  4e2021e877477dab 7,10-17,20-21,25-74,76-82,85,89,96,99,104-105,132,170-172,234-238,241,244
+src/components/FlightPicker.vue
+  4e2021e877477dab 37,117-124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.23",
+  "base_commit_sha": "68a0c44e41f43bef5914d6d7b34d20e7a816c1fa",
+  "prompts": {
+    "4e2021e877477dab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "32fd7d12-d3ba-4d2d-92da-a6c8a409222b",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Abinesh M <abinesh.m@gdn-commerce.com>",
+      "messages": [],
+      "total_additions": 219,
+      "total_deletions": 67,
+      "accepted_lines": 205,
+      "overriden_lines": 5
+    }
+  }
+}
