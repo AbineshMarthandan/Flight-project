@@ -1,0 +1,41 @@
+vite.config.js
+  4e2021e877477dab 2-3,9-152,158
+src/components/FlightPicker.vue
+  4e2021e877477dab 4,12-13,21-23,44
+src/components/SideNav.vue
+  4e2021e877477dab 58-75
+src/stores/envSettings.js
+  4e2021e877477dab 1-45
+src/router/index.js
+  4e2021e877477dab 7,17
+src/api/flightSearch.js
+  4e2021e877477dab 1,40-47
+src/stores/multiCitySearch.js
+  4e2021e877477dab 2,142,253,257-270
+src/components/LegResults.vue
+  4e2021e877477dab 3,8-9,29
+src/views/SettingsView.vue
+  4e2021e877477dab 1-119
+src/api/http.js
+  4e2021e877477dab 11-12,45,50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.23",
+  "base_commit_sha": "bc4c854862331245acce4c286b793b2793a3b42b",
+  "prompts": {
+    "4e2021e877477dab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "32fd7d12-d3ba-4d2d-92da-a6c8a409222b",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Abinesh M <abinesh.m@gdn-commerce.com>",
+      "messages": [],
+      "total_additions": 382,
+      "total_deletions": 78,
+      "accepted_lines": 373,
+      "overriden_lines": 0
+    }
+  }
+}
