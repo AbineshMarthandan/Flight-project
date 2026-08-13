@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { searchMultiCity, streamLeg, searchNextLeg, getFlightDetail } from '@/api/flightSearch'
+import { searchMultiCity, streamLeg, searchNextLeg, getFlightDetail, decodeSupplierStrings } from '@/api/flightSearch'
 import { addToCart as addToCartApi, getCart } from '@/api/flightCart'
 import { getBaggageSelection, getMealsSelection, getSeatsSelection } from '@/api/flightAncillary'
 
@@ -24,10 +24,10 @@ const REFERENCE_CHAINS = {
     ['SIN', 'CGK'],
   ],
   4: [
-    ['CGK', 'DPS'],
-    ['DPS', 'SUB'],
-    ['SUB', 'UPG'],
-    ['UPG', 'BPN'],
+    ['CGK', 'KUL'],
+    ['KUL', 'NRT'],
+    ['NRT', 'KUL'],
+    ['KUL', 'CGK'],
   ],
   5: [
     ['CGK', 'DPS'],
@@ -139,6 +139,7 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
     legs: [],
     currentSegment: 0,
     candidates: [],
+    supplierNames: {},
     requestItems: null,
     flightDetail: null,
     error: null,
@@ -249,8 +250,23 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
       this.setStepStatus(streamKey, 'done')
       this.currentSegment = segment
       this.candidates = candidates
+      this.decodeSuppliers(candidates.map((f) => f.supplierId))
       this.setStepStatus(`select-${segment}`, 'active')
       this.status = 'awaiting-selection'
+    },
+    async decodeSuppliers(ids) {
+      const uniqueIds = [...new Set(ids.filter((id) => id && !this.supplierNames[id]))]
+      if (!uniqueIds.length) return
+      try {
+        const strippedIds = uniqueIds.map((id) => id.replace(/-ENC$/, ''))
+        const res = await decodeSupplierStrings(strippedIds)
+        const decoded = res?.data?.strings ?? (Array.isArray(res?.data) ? res.data : null) ?? res?.strings ?? []
+        uniqueIds.forEach((id, i) => {
+          if (decoded[i]) this.supplierNames[id] = decoded[i]
+        })
+      } catch {
+        // Cosmetic enhancement only — leave the raw supplier id displayed on failure.
+      }
     },
     async selectFlight(flight) {
       const segment = this.currentSegment

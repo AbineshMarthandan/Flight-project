@@ -1,4 +1,4 @@
-import { postJson } from './http'
+import { postJson, FLIGHT_DECODE_BASE_URL } from './http'
 
 export function searchMultiCity({ adult, child, infant, cabinClass, routes }) {
   return postJson('/search/multi-city', {
@@ -36,4 +36,12 @@ export function getFlightDetail(details) {
     itineraryType: 'MULTI_CITY',
     dcVar: true,
   })
+}
+
+export function decodeSupplierStrings(strings) {
+  return postJson(
+    '/base64/decodes',
+    { strings },
+    { baseUrl: FLIGHT_DECODE_BASE_URL, headers: { channelId: 'WEB', username: 'username' } },
+  )
 }

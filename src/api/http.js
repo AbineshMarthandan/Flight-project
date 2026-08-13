@@ -8,6 +8,8 @@ export const ANCILLARY_MEAL_BASE_URL = '/api/ancillary-meal'
 
 export const ANCILLARY_SEAT_BASE_URL = '/api/ancillary-seat'
 
+export const FLIGHT_DECODE_BASE_URL = '/api/flight-decode'
+
 export class ApiError extends Error {
   constructor(message, { status, body, cause } = {}) {
     super(message)
@@ -40,12 +42,12 @@ function defaultHeaders() {
   }
 }
 
-export async function postJson(path, body, { baseUrl = BASE_URL } = {}) {
+export async function postJson(path, body, { baseUrl = BASE_URL, headers } = {}) {
   let response
   try {
     response = await fetch(`${baseUrl}${path}`, {
       method: 'POST',
-      headers: defaultHeaders(),
+      headers: { ...defaultHeaders(), ...headers },
       body: JSON.stringify(body),
     })
   } catch (cause) {

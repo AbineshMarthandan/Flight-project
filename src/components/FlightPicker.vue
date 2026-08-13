@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { formatTime, formatPrice } from '@/utils/format'
+import { useMultiCitySearchStore } from '@/stores/multiCitySearch'
 
 const props = defineProps({
   candidates: { type: Array, required: true },
@@ -8,12 +9,18 @@ const props = defineProps({
 })
 const emit = defineEmits(['select'])
 
+const store = useMultiCitySearchStore()
+
 const sorted = computed(() =>
   [...props.candidates].sort((a, b) => (a.trackerProperties?.price ?? 0) - (b.trackerProperties?.price ?? 0)),
 )
 
 function airlines(flight) {
   return flight.filterProperties?.values?.airlines?.join(', ') || '—'
+}
+
+function supplierName(flight) {
+  return store.supplierNames[flight.supplierId] || flight.supplierId || '—'
 }
 </script>
 
@@ -34,7 +41,7 @@ function airlines(flight) {
         </div>
         <div class="picker__meta">
           <span>{{ airlines(flight) }}</span>
-          <span class="picker__supplier" :title="flight.supplierId">{{ flight.supplierId || '—' }}</span>
+          <span class="picker__supplier" :title="flight.supplierId">{{ supplierName(flight) }}</span>
           <span v-if="flight.comboMC" class="picker__badge">Combo MC</span>
         </div>
         <div class="picker__price">{{ formatPrice(flight.trackerProperties?.price) }}</div>

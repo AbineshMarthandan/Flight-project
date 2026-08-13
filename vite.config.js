@@ -1,80 +1,164 @@
 import { fileURLToPath, URL } from 'node:url'
+import http from 'node:http'
+import https from 'node:https'
 
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
-// The browser always attaches its real `Origin`/`Referer` (http://localhost:5173)
-// to POST requests, even ones that are same-origin from the page's own point of
-// view. Some backends reject that outright with a 403 because it doesn't match
-// their own host, as an origin/CSRF check unrelated to standard CORS. Rewriting
-// those headers to the proxy target before forwarding keeps the backend happy.
-function trustOrigin(target) {
-  return (proxy) => {
-    proxy.on('proxyReq', (proxyReq) => {
-      proxyReq.setHeader('origin', target)
-      proxyReq.setHeader('referer', `${target}/`)
-    })
+// Each service can be pointed at 'local' or 'k8s' at runtime (see SettingsView.vue)
+// without restarting the dev server. Vite's declarative `server.proxy` fixes its
+// target when the config loads, so switching on the fly needs a hand-rolled proxy
+// middleware that re-reads the current selection on every request instead.
+const SERVICES = {
+  flight: {
+    prefix: '/api/flight',
+    backendPrefix: '/tix-flight-search',
+    label: 'Flight Search',
+    envs: {
+      local: 'http://localhost:8581',
+      k8s: 'http://flight-search-v2.flight-ns.svc.tiket',
+    },
+  },
+  cart: {
+    prefix: '/api/cart',
+    backendPrefix: '/tix-flight-cart',
+    label: 'Cart',
+    envs: {
+      local: 'http://localhost:8880',
+      k8s: 'http://flight-cart.flight-ns.svc.tiket',
+    },
+  },
+  ancillaryBaggage: {
+    prefix: '/api/ancillary-baggage',
+    backendPrefix: '/tix-flight-ancillary',
+    label: 'Ancillary — Baggage',
+    envs: {
+      local: 'http://localhost:8888',
+      k8s: 'http://flight-ancillary.flight-ns.svc.tiket',
+    },
+  },
+  ancillaryMeal: {
+    prefix: '/api/ancillary-meal',
+    backendPrefix: '/tix-flight-ancillary',
+    label: 'Ancillary — Meal',
+    envs: {
+      local: 'http://localhost:8888',
+      k8s: 'http://flight-ancillary.flight-ns.svc.tiket',
+    },
+  },
+  ancillarySeat: {
+    prefix: '/api/ancillary-seat',
+    backendPrefix: '/tix-flight-ancillary',
+    label: 'Ancillary — Seat',
+    envs: {
+      local: 'http://localhost:8888',
+      k8s: 'http://flight-ancillary.flight-ns.svc.tiket',
+    },
+  },
+}
+
+// The base64 decode endpoint always hits this fixed host — it must NOT follow
+// the local/k8s switcher above, and must NOT be listed as a switchable option.
+const FLIGHT_DECODE_PREFIX = '/api/flight-decode'
+const FLIGHT_DECODE_BACKEND_PREFIX = '/tix-flight-search'
+const FLIGHT_DECODE_TARGET = 'http://flight-search.flight-ns.svc.tiket'
+
+const ENV_CONFIG_PATH = '/__env-config'
+
+// http-proxy-middleware/http-proxy aren't directly resolvable as project
+// dependencies (Vite vendors its own copy internally), so requests are
+// forwarded by hand here to allow re-picking the target per request.
+function forward(req, res, targetBase, backendPrefix, prefix) {
+  const target = new URL(targetBase)
+  const rewrittenPath = req.url.replace(prefix, backendPrefix)
+  const client = target.protocol === 'https:' ? https : http
+
+  const proxyReq = client.request(
+    {
+      protocol: target.protocol,
+      hostname: target.hostname,
+      port: target.port || (target.protocol === 'https:' ? 443 : 80),
+      path: rewrittenPath,
+      method: req.method,
+      headers: {
+        ...req.headers,
+        host: target.host,
+        origin: targetBase,
+        referer: `${targetBase}/`,
+      },
+    },
+    (proxyRes) => {
+      res.writeHead(proxyRes.statusCode, proxyRes.headers)
+      proxyRes.pipe(res, { end: true })
+    },
+  )
+  proxyReq.on('error', (err) => {
+    res.statusCode = 502
+    res.end(`Proxy error: ${err.message}`)
+  })
+  req.pipe(proxyReq, { end: true })
+}
+
+function envSwitcherPlugin() {
+  const currentEnv = Object.fromEntries(Object.keys(SERVICES).map((key) => [key, 'local']))
+
+  return {
+    name: 'env-switcher',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url === ENV_CONFIG_PATH) {
+          if (req.method === 'GET') {
+            res.setHeader('content-type', 'application/json')
+            res.end(JSON.stringify({ services: SERVICES, current: currentEnv }))
+            return
+          }
+          if (req.method === 'POST') {
+            let body = ''
+            req.on('data', (chunk) => (body += chunk))
+            req.on('end', () => {
+              try {
+                const { service, env } = JSON.parse(body || '{}')
+                if (!SERVICES[service] || !SERVICES[service].envs[env]) {
+                  res.statusCode = 400
+                  res.end(JSON.stringify({ error: 'Unknown service or environment' }))
+                  return
+                }
+                currentEnv[service] = env
+                res.setHeader('content-type', 'application/json')
+                res.end(JSON.stringify({ current: currentEnv }))
+              } catch {
+                res.statusCode = 400
+                res.end(JSON.stringify({ error: 'Invalid request body' }))
+              }
+            })
+            return
+          }
+        }
+
+        if (req.url.startsWith(FLIGHT_DECODE_PREFIX)) {
+          forward(req, res, FLIGHT_DECODE_TARGET, FLIGHT_DECODE_BACKEND_PREFIX, FLIGHT_DECODE_PREFIX)
+          return
+        }
+
+        const match = Object.entries(SERVICES).find(([, svc]) => req.url.startsWith(svc.prefix))
+        if (!match) {
+          next()
+          return
+        }
+        const [key, svc] = match
+        forward(req, res, svc.envs[currentEnv[key]], svc.backendPrefix, svc.prefix)
+      })
+    },
   }
 }
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    vue(),
-    vueDevTools(),
-  ],
+  plugins: [vue(), vueDevTools(), envSwitcherPlugin()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-    },
-  },
-  server: {
-    proxy: {
-      // Browser calls same-origin '/api/flight/*' so no CORS preflight ever
-      // happens; Vite forwards the request server-side to the internal
-      // backend, which never sees (or needs to allow) a cross-origin call.
-      '/api/flight': {
-        target: 'http://flight-search-v2.flight-ns.svc.tiket',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/flight/, '/tix-flight-search'),
-        configure: trustOrigin('http://flight-search-v2.flight-ns.svc.tiket'),
-      },
-      // Cart API runs on a separate host/port, so it needs its own proxy
-      // entry even though it hits the same browser-side CORS problem.
-      '/api/cart': {
-        target: 'http://localhost:8880',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/cart/, '/tix-flight-cart'),
-        configure: trustOrigin('http://localhost:8880'),
-      },
-      // Ancillary API — baggage. Named '-baggage' (not the bare '/api/ancillary')
-      // because Vite's proxy matches by string prefix in definition order: a
-      // bare '/api/ancillary' key is also a prefix of '/api/ancillary-meal' and
-      // '/api/ancillary-seat' below, so it would intercept their requests first
-      // and mangle the rewritten path (e.g. '/tix-flight-ancillary-meal/...').
-      '/api/ancillary-baggage': {
-        target: 'http://localhost:8888',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/ancillary-baggage/, '/tix-flight-ancillary'),
-        configure: trustOrigin('http://localhost:8888'),
-      },
-      // Ancillary API — meals. Separate port from baggage above.
-      '/api/ancillary-meal': {
-        target: 'http://localhost:8888',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/ancillary-meal/, '/tix-flight-ancillary'),
-        configure: trustOrigin('http://localhost:8888'),
-      },
-      // Ancillary API — seats. Same host as meals (confirmed by matching
-      // "X-Currency cannot be blank" behavior), kept as its own entry so each
-      // ancillary feature can point elsewhere independently if that changes.
-      '/api/ancillary-seat': {
-        target: 'http://localhost:8888',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/ancillary-seat/, '/tix-flight-ancillary'),
-        configure: trustOrigin('http://localhost:8888'),
-      },
     },
   },
 })

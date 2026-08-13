@@ -1,9 +1,12 @@
 <script setup>
 import { formatTime, formatPrice } from '@/utils/format'
+import { useMultiCitySearchStore } from '@/stores/multiCitySearch'
 
 defineProps({
   legs: { type: Array, required: true },
 })
+
+const store = useMultiCitySearchStore()
 </script>
 
 <template>
@@ -23,7 +26,7 @@ defineProps({
         </div>
         <div>
           <span class="leg-card__label">Supplier</span>
-          <span class="leg-card__clamp" :title="leg.supplierId">{{ leg.supplierId }}</span>
+          <span class="leg-card__clamp" :title="leg.supplierId">{{ store.supplierNames[leg.supplierId] || leg.supplierId }}</span>
         </div>
       </div>
     </div>
