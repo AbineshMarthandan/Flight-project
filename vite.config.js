@@ -56,6 +56,30 @@ const SERVICES = {
       k8s: 'http://flight-ancillary.flight-ns.svc.tiket',
     },
   },
+  bookingV6: {
+    prefix: '/api/booking-v6',
+    backendPrefix: '/tix-flight-core/v6',
+    label: 'Booking v6',
+    envs: {
+      local: 'http://localhost:8765',
+    },
+  },
+  bookingV7: {
+    prefix: '/api/booking-v7',
+    backendPrefix: '/tix-flight-core/v7',
+    label: 'Booking v7',
+    envs: {
+      local: 'http://localhost:8765',
+    },
+  },
+  bookingTrace: {
+    prefix: '/api/booking-trace',
+    backendPrefix: '/tix-flight-core/log/booking-internal-api-trace',
+    label: 'Booking — Internal API Trace',
+    envs: {
+      local: 'http://localhost:8765',
+    },
+  },
 }
 
 // The base64 decode endpoint always hits this fixed host — it must NOT follow

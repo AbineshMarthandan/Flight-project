@@ -10,6 +10,12 @@ export const ANCILLARY_SEAT_BASE_URL = '/api/ancillary-seat'
 
 export const FLIGHT_DECODE_BASE_URL = '/api/flight-decode'
 
+export const BOOKING_V6_BASE_URL = '/api/booking-v6'
+
+export const BOOKING_V7_BASE_URL = '/api/booking-v7'
+
+export const BOOKING_TRACE_BASE_URL = '/api/booking-trace'
+
 export class ApiError extends Error {
   constructor(message, { status, body, cause } = {}) {
     super(message)

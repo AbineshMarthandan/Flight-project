@@ -29,6 +29,24 @@
     </nav>
 
     <div class="side-nav__group">
+      <p class="side-nav__group-label">Booking</p>
+      <RouterLink to="/booking/v6" class="side-nav__link side-nav__link--sub" active-class="side-nav__link--active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3a2 2 0 0 1 0 4v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3a2 2 0 0 1 0-4z" />
+          <line x1="13" y1="6" x2="13" y2="18" stroke-dasharray="2 2" />
+        </svg>
+        Booking v6
+      </RouterLink>
+      <RouterLink to="/booking/v7" class="side-nav__link side-nav__link--sub" active-class="side-nav__link--active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3a2 2 0 0 1 0 4v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3a2 2 0 0 1 0-4z" />
+          <line x1="13" y1="6" x2="13" y2="18" stroke-dasharray="2 2" />
+        </svg>
+        Booking v7
+      </RouterLink>
+    </div>
+
+    <div class="side-nav__group">
       <p class="side-nav__group-label">Ancillary</p>
       <RouterLink to="/ancillary/baggage" class="side-nav__link side-nav__link--sub" active-class="side-nav__link--active">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

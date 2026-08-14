@@ -75,19 +75,29 @@ function supplierName(flight) {
   color: var(--color-text-muted);
 }
 .picker__list {
-  max-height: 28rem;
+  max-height: 34rem;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.85rem;
   padding-right: 0.25rem;
 }
+@media (max-width: 900px) {
+  .picker__list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .picker__list {
+    grid-template-columns: 1fr;
+  }
+}
 .picker__card {
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
-  align-items: center;
-  gap: 0.75rem 1rem;
-  padding: 0.75rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0.9rem 1rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   transition:
@@ -116,13 +126,13 @@ function supplierName(flight) {
 .picker__meta {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.5rem;
   font-size: 0.8rem;
   color: var(--color-text-body);
-  white-space: nowrap;
 }
 .picker__supplier {
-  max-width: 8rem;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--color-text-muted);
@@ -138,11 +148,13 @@ function supplierName(flight) {
 }
 .picker__price {
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 1rem;
   white-space: nowrap;
 }
 .picker__select {
-  padding: 0.45rem 0.9rem;
+  margin-top: auto;
+  width: 100%;
+  padding: 0.5rem 0.9rem;
   border-radius: var(--radius-md);
   border: 1px solid transparent;
   background: var(--color-accent);
