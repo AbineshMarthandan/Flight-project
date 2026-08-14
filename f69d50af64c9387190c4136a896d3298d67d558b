@@ -1,0 +1,58 @@
+src/views/SearchView.vue
+  4e2021e877477dab 14-17,19-24,26-30,32,36,41-45,52-53,55-136,156-157
+src/stores/multiCitySearch.js
+  4e2021e877477dab 5-241,399-416,604,607,680-814
+src/router/index.js
+  4e2021e877477dab 8-9,16-17
+src/components/BookingTraceResult.vue
+  4e2021e877477dab 1-277
+src/views/BookingV6View.vue
+  4e2021e877477dab 1-161
+src/api/flightBooking.js
+  4e2021e877477dab 1-21
+vite.config.js
+  4e2021e877477dab 59-82
+src/utils/javaToString.js
+  4e2021e877477dab 1-118
+src/views/BookingV7View.vue
+  4e2021e877477dab 1-162
+src/api/http.js
+  4e2021e877477dab 13-18
+src/components/SideNav.vue
+  4e2021e877477dab 32-48
+src/components/FlightPicker.vue
+  4e2021e877477dab 78,80-82,85-88,90-94,96-100,129-130,135,151,155-157
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.23",
+  "base_commit_sha": "f69d50af64c9387190c4136a896d3298d67d558b",
+  "prompts": {
+    "2498e4626476a063": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e45a6e58-9a41-44dc-9f77-fdcaf6f3d512",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Abinesh M <abinesh.m@gdn-commerce.com>",
+      "messages": [],
+      "total_additions": 380,
+      "total_deletions": 2,
+      "accepted_lines": 195,
+      "overriden_lines": 1
+    },
+    "4e2021e877477dab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "32fd7d12-d3ba-4d2d-92da-a6c8a409222b",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Abinesh M <abinesh.m@gdn-commerce.com>",
+      "messages": [],
+      "total_additions": 1430,
+      "total_deletions": 322,
+      "accepted_lines": 1332,
+      "overriden_lines": 1
+    }
+  }
+}
