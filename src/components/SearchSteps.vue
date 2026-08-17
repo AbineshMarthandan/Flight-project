@@ -62,7 +62,7 @@ defineProps({
   color: var(--color-success);
 }
 .steps__item--done .steps__icon {
-  background: #dcfce7;
+  background: var(--color-success-emphasis-soft);
   color: var(--color-success);
 }
 .steps__item--error {

@@ -39,6 +39,7 @@ const route = useRoute()
   z-index: 5;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
   padding: 1.35rem 2.5rem;
 }
 .shell__topbar h1 {
@@ -50,7 +51,6 @@ const route = useRoute()
 .shell__content {
   flex: 1;
   width: 100%;
-  max-width: 1080px;
   margin: 0 auto;
   padding: 1.75rem 2.5rem 4rem;
 }

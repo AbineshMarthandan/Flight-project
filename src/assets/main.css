@@ -18,11 +18,20 @@
   --color-success-dark: #166534;
   --color-success-soft: #f0fdf4;
   --color-success-border: #bbf7d0;
+  --color-success-emphasis-soft: #dcfce7;
+  --color-success-hover: #128a3e;
+  --color-success-disabled: #86efac;
 
   --color-danger: #dc2626;
   --color-danger-dark: #b91c1c;
   --color-danger-soft: #fef2f2;
   --color-danger-border: #fecaca;
+
+  --color-code-bg: #0b1021;
+  --color-code-text: #e5e7eb;
+  --color-code-accent: #a5f3fc;
+  --color-code-border: rgba(229, 231, 235, 0.25);
+  --color-code-hover: rgba(229, 231, 235, 0.12);
 
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -39,6 +48,7 @@
 
   --font-sans:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 * {
@@ -58,6 +68,34 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+a {
+  color: var(--color-accent);
+}
+
+::selection {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 *::-webkit-scrollbar {

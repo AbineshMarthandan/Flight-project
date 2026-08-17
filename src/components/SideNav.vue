@@ -3,7 +3,11 @@
 <template>
   <aside class="side-nav">
     <div class="side-nav__brand">
-      <span class="side-nav__mark">&#9992;</span>
+      <span class="side-nav__mark">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M2 21l21-9L2 3v7l15 2-15 2z" />
+        </svg>
+      </span>
       <div>
         <p class="side-nav__title">Flight</p>
         <p class="side-nav__subtitle">Multi-city search</p>
@@ -125,8 +129,11 @@
   border-radius: var(--radius-lg);
   background: var(--color-accent);
   color: #fff;
-  font-size: 1.1rem;
   flex-shrink: 0;
+}
+.side-nav__mark svg {
+  width: 1.05rem;
+  height: 1.05rem;
 }
 .side-nav__title {
   margin: 0;

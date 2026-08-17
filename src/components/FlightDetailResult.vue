@@ -21,8 +21,31 @@ async function copyJson() {
     <div class="detail__header">
       <h3 class="detail__title">{{ title }}</h3>
       <button type="button" class="detail__copy" :title="copied ? 'Copied!' : 'Copy JSON'" @click="copyJson">
-        <template v-if="copied">&check;</template>
-        <template v-else>&#128203;</template>
+        <svg
+          v-if="copied"
+          class="detail__copy-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+        <svg
+          v-else
+          class="detail__copy-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
       </button>
     </div>
     <pre class="detail__json">{{ json }}</pre>
@@ -34,7 +57,7 @@ async function copyJson() {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 1rem 1.1rem;
-  background: #0b1021;
+  background: var(--color-code-bg);
   box-shadow: var(--shadow-sm);
 }
 .detail__header {
@@ -47,7 +70,7 @@ async function copyJson() {
 .detail__title {
   margin: 0;
   font-size: 0.9rem;
-  color: #e5e7eb;
+  color: var(--color-code-text);
 }
 .detail__copy {
   display: inline-flex;
@@ -57,25 +80,29 @@ async function copyJson() {
   height: 1.6rem;
   flex-shrink: 0;
   padding: 0;
-  border: 1px solid rgba(229, 231, 235, 0.25);
+  border: 1px solid var(--color-code-border);
   border-radius: var(--radius-sm);
   background: transparent;
-  color: #e5e7eb;
+  color: var(--color-code-text);
   cursor: pointer;
-  font-size: 0.85rem;
   line-height: 1;
   transition: background 0.15s ease;
 }
+.detail__copy-icon {
+  width: 0.8rem;
+  height: 0.8rem;
+}
 .detail__copy:hover {
-  background: rgba(229, 231, 235, 0.12);
+  background: var(--color-code-hover);
 }
 .detail__json {
   margin: 0;
   max-height: 24rem;
   overflow: auto;
+  font-family: var(--font-mono);
   font-size: 0.78rem;
-  line-height: 1.4;
-  color: #a5f3fc;
+  line-height: 1.5;
+  color: var(--color-code-accent);
   white-space: pre-wrap;
   word-break: break-word;
 }

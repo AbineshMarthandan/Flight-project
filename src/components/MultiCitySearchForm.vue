@@ -101,7 +101,8 @@ function onSubmit() {
   flex-direction: column;
   gap: 0.25rem;
   font-size: 0.8rem;
-  color: #4b5563;
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
 .search-form__passengers input,
 .search-form__passengers select {

@@ -200,8 +200,9 @@ const timeline = computed(() => props.trace?.calls ?? [])
   margin: 0;
   max-height: 16rem;
   overflow: auto;
+  font-family: var(--font-mono);
   font-size: 0.78rem;
-  line-height: 1.4;
+  line-height: 1.5;
   color: var(--color-text-body);
   white-space: pre-wrap;
   word-break: break-word;
@@ -233,7 +234,7 @@ const timeline = computed(() => props.trace?.calls ?? [])
   align-items: start;
   padding: 0.35rem 0;
   border-bottom: 1px solid var(--color-border-soft);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
 }
 .trace__entry:last-child {

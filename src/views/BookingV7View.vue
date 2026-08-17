@@ -149,7 +149,7 @@ onMounted(() => {
   border-radius: 0 0 var(--radius-xl) var(--radius-xl);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.82rem;
   line-height: 1.5;
   color: var(--color-text-body);

@@ -381,6 +381,7 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
     flightDetail: null,
     error: null,
     addingToCart: false,
+    cartCurrency: 'IDR',
     cartId: null,
     cartResponse: null,
     cartError: null,
@@ -598,7 +599,7 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
           fareBasisCode: '',
           comboMC: leg.comboMC,
         }))
-        const res = await addToCartApi({ cartDetails, currency: 'IDR' })
+        const res = await addToCartApi({ cartDetails, currency: this.cartCurrency })
         this.cartId = res.data.cartId
         this.cartResponse = res.data
         this.syncCartIdIntoBookingPayloads()
