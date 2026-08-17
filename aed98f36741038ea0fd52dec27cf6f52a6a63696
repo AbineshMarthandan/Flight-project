@@ -1,0 +1,43 @@
+src/assets/main.css
+  4e2021e877477dab 21-23,30-35,51,73-100
+src/components/FlightDetailResult.vue
+  4e2021e877477dab 24-48,60,73,83,86,91-94,96,102,104-105
+src/stores/multiCitySearch.js
+  4e2021e877477dab 384,602
+src/App.vue
+  4e2021e877477dab 42
+src/components/SearchSteps.vue
+  4e2021e877477dab 65
+src/components/MultiCitySearchForm.vue
+  4e2021e877477dab 104-105
+src/components/BookingTraceResult.vue
+  4e2021e877477dab 203,205,237
+src/views/BookingV7View.vue
+  4e2021e877477dab 152
+src/components/SideNav.vue
+  4e2021e877477dab 6-10,134-136
+src/views/BookingV6View.vue
+  4e2021e877477dab 151
+src/components/CartPanel.vue
+  4e2021e877477dab 18-26,31-55,83-111,127,132,163-166,168
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.23",
+  "base_commit_sha": "aed98f36741038ea0fd52dec27cf6f52a6a63696",
+  "prompts": {
+    "4e2021e877477dab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "32fd7d12-d3ba-4d2d-92da-a6c8a409222b",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Abinesh M <abinesh.m@gdn-commerce.com>",
+      "messages": [],
+      "total_additions": 165,
+      "total_deletions": 27,
+      "accepted_lines": 165,
+      "overriden_lines": 0
+    }
+  }
+}
