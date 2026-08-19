@@ -1,0 +1,52 @@
+src/views/SeatView.vue
+  3cb0b69a799c3053 27-66,139-206
+src/views/MealView.vue
+  3cb0b69a799c3053 27-65,138-206
+src/views/BookingV7View.vue
+  3cb0b69a799c3053 11,23-26,28-34
+src/views/BaggageView.vue
+  3cb0b69a799c3053 27-65,138-205
+src/views/BookingV6View.vue
+  3cb0b69a799c3053 11,23-26,28-34
+src/api/flightCart.js
+  4af2cfd1913ae25c 21-24
+src/views/SettingsView.vue
+  4af2cfd1913ae25c 2,4,15-42,75-131,206-321
+src/stores/multiCitySearch.js
+  3cb0b69a799c3053 224-453,624-627,631-634,638-641,661-697,735-740,748-779,923,965-981,999-1015,1033-1049,1069-1085,1087-1090
+vite.config.js
+  4af2cfd1913ae25c 8-11,96-222,313
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.23",
+  "base_commit_sha": "768d5b28149287ba9566e28b00ef76643b3e5a98",
+  "prompts": {
+    "3cb0b69a799c3053": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9bd4fb43-44b2-44f5-9fd3-370c28718041",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Abinesh M <abinesh.m@gdn-commerce.com>",
+      "messages": [],
+      "total_additions": 805,
+      "total_deletions": 100,
+      "accepted_lines": 742,
+      "overriden_lines": 0
+    },
+    "4af2cfd1913ae25c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b8ca8c48-9d36-4cba-ab83-ae13e1748949",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Abinesh M <abinesh.m@gdn-commerce.com>",
+      "messages": [],
+      "total_additions": 342,
+      "total_deletions": 4,
+      "accepted_lines": 340,
+      "overriden_lines": 0
+    }
+  }
+}
