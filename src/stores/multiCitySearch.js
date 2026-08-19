@@ -221,6 +221,236 @@ function buildPaxList(pool, count) {
   return Array.from({ length: safeCount }, (_, i) => pool[i % pool.length])
 }
 
+// Same as buildPaxList, but keeps any meals/baggages/seats already appended
+// to the pax at that index (e.g. from the ancillary pickers) instead of
+// clobbering them — so re-syncing passenger identity fields after a pax
+// count change never wipes out selections already made.
+function mergePaxList(existingList, pool, count) {
+  return buildPaxList(pool, count).map((sample, i) => {
+    const existing = existingList?.[i]
+    const merged = { ...sample }
+    if (existing?.meals) merged.meals = existing.meals
+    if (existing?.baggages) merged.baggages = existing.baggages
+    if (existing?.seats) merged.seats = existing.seats
+    return merged
+  })
+}
+
+// Meal segments come back with `paxType: null` when every booked type (besides
+// infant) is eligible, and an explicit array (e.g. ["CHILD","ADULT"]) when the
+// supplier restricts it further. Infants only get a slot if explicitly listed.
+function buildPaxSlots(segment, counts) {
+  const types = Array.isArray(segment.paxType) && segment.paxType.length
+    ? segment.paxType.map((t) => t.toUpperCase())
+    : ['ADULT', 'CHILD']
+
+  const slots = []
+  if (types.includes('ADULT')) {
+    for (let i = 0; i < counts.adult; i++) slots.push({ paxKey: 'adults', paxIndex: i, label: `Adult ${i + 1}` })
+  }
+  if (types.includes('CHILD')) {
+    for (let i = 0; i < counts.child; i++) slots.push({ paxKey: 'childs', paxIndex: i, label: `Child ${i + 1}` })
+  }
+  if (types.includes('INFANT')) {
+    for (let i = 0; i < counts.infant; i++) slots.push({ paxKey: 'infants', paxIndex: i, label: `Infant ${i + 1}` })
+  }
+  return slots
+}
+
+const INVALID_JSON = Symbol('invalid-json')
+
+// Generic append/replace/remove into payload[paxKey][paxIndex][bookingsField],
+// where each booking is `{ flightId, [detailsField]: [...] }` and each detail
+// row is matched by origin/destination/departureDate/departureTime — the same
+// matching core uses to line an ancillary selection back up with a leg (see
+// MealPriceServiceImpl#matchesScheduleSegment and the equivalent baggage/seat
+// matchers). Returns the re-stringified payload, INVALID_JSON if it can't be
+// parsed, or null when there's nothing to do (empty text or pax slot missing).
+function applyAncillarySelectionToPayloadText(
+  payloadText,
+  paxKey,
+  paxIndex,
+  segment,
+  code,
+  bookingsField,
+  detailsField,
+  buildDetail,
+) {
+  const trimmed = payloadText.trim()
+  if (!trimmed) return null
+
+  let payload
+  try {
+    payload = JSON.parse(trimmed)
+  } catch {
+    return INVALID_JSON
+  }
+
+  const pax = payload[paxKey]?.[paxIndex]
+  if (!pax) return null
+
+  pax[bookingsField] = pax[bookingsField] ?? []
+  let booking = pax[bookingsField].find((b) => b.flightId === segment.flightId)
+  if (!booking) {
+    booking = { flightId: segment.flightId, [detailsField]: [] }
+    pax[bookingsField].push(booking)
+  }
+
+  const details = booking[detailsField]
+  const idx = details.findIndex(
+    (d) =>
+      d.origin === segment.origin &&
+      d.destination === segment.destination &&
+      d.departureDate === segment.departureDate &&
+      d.departureTime === segment.departureTime,
+  )
+  if (!code) {
+    if (idx >= 0) details.splice(idx, 1)
+  } else if (idx >= 0) {
+    details[idx] = buildDetail(segment, code)
+  } else {
+    details.push(buildDetail(segment, code))
+  }
+
+  if (details.length === 0) {
+    pax[bookingsField] = pax[bookingsField].filter((b) => b !== booking)
+  }
+
+  return JSON.stringify(payload, null, 2)
+}
+
+function buildMealDetail(segment, code) {
+  const option = segment.inputSources.find((opt) => opt.value === code)
+  return {
+    origin: segment.origin,
+    destination: segment.destination,
+    departureDate: segment.departureDate,
+    departureTime: segment.departureTime,
+    mealFares: [{ code, fare: option?.price ?? 0 }],
+  }
+}
+
+function applyMealSelectionToPayloadText(payloadText, paxKey, paxIndex, segment, code) {
+  return applyAncillarySelectionToPayloadText(
+    payloadText,
+    paxKey,
+    paxIndex,
+    segment,
+    code,
+    'meals',
+    'mealDetails',
+    buildMealDetail,
+  )
+}
+
+// Baggage's DropdownValueV2.value is the weight code (e.g. "20"), stored back
+// as BaggageFareDetailRequest{ weight, fare } — a single object, not a list
+// like meal's mealFares (a segment sells one weight tier at a time).
+function buildBaggageDetail(segment, code) {
+  const option = segment.inputSources.find((opt) => opt.value === code)
+  return {
+    origin: segment.origin,
+    destination: segment.destination,
+    departureDate: segment.departureDate,
+    departureTime: segment.departureTime,
+    baggageFare: { weight: code, fare: option?.price ?? 0 },
+  }
+}
+
+function applyBaggageSelectionToPayloadText(payloadText, paxKey, paxIndex, segment, code) {
+  return applyAncillarySelectionToPayloadText(
+    payloadText,
+    paxKey,
+    paxIndex,
+    segment,
+    code,
+    'baggages',
+    'baggageDetails',
+    buildBaggageDetail,
+  )
+}
+
+// Seat maps are decks of rows/columns rather than a flat dropdown list, so
+// seatSegments (below) flattens each deck's bookable seats into options
+// first; `code` here is the chosen seat designator (e.g. "12A").
+function buildSeatDetail(segment, code) {
+  const option = segment.options.find((opt) => opt.value === code)
+  return {
+    origin: segment.origin,
+    destination: segment.destination,
+    departureDate: segment.departureDate,
+    departureTime: segment.departureTime,
+    airline: segment.airline,
+    flightNumber: segment.flightNumber,
+    operatingAirline: segment.operatingAirline,
+    operatingFlightNumber: segment.operatingFlightNumber,
+    seatNumber: code,
+    deckNumber: option?.deckNumber ?? null,
+    group: option?.seatGroup ?? null,
+    category: option?.category ?? null,
+    totalFare: option?.totalFare ?? 0,
+  }
+}
+
+function applySeatSelectionToPayloadText(payloadText, paxKey, paxIndex, segment, code) {
+  return applyAncillarySelectionToPayloadText(
+    payloadText,
+    paxKey,
+    paxIndex,
+    segment,
+    code,
+    'seats',
+    'seatDetails',
+    buildSeatDetail,
+  )
+}
+
+// Flattens one seat deck's bookable seats into flat dropdown options, pulling
+// price/category from the matching seatGroups entry (SeatGroupV2) by name.
+function flattenSeatOptions(segment) {
+  const options = []
+  for (const deck of segment.seatDecks ?? []) {
+    const groupsByName = new Map((deck.seatGroups ?? []).map((g) => [g.group, g]))
+    for (const seat of deck.seats ?? []) {
+      if (!seat.bookable) continue
+      const group = groupsByName.get(seat.seatGroup)
+      options.push({
+        value: seat.designator,
+        label: `${seat.designator} · ${group?.category ?? 'REGULAR'} · ${group?.currency ?? ''} ${group?.totalFare ?? 0}`.trim(),
+        deckNumber: deck.deckNumber,
+        seatGroup: seat.seatGroup,
+        category: group?.category ?? null,
+        totalFare: group?.totalFare ?? 0,
+      })
+    }
+  }
+  return options
+}
+
+// One SeatSelectionDetailV2 (`detail`) carries one flightId but can itself
+// span multiple seatItinerary.seatSegments for a connecting flight, so each
+// segment gets its own picker keyed by `${flightId}-${segIndex}` — segments
+// with no bookable seats are dropped.
+function buildSeatSegments(detail, counts) {
+  const paxSlots = buildPaxSlots({ paxType: detail.paxType }, counts)
+  return (detail.seatItinerary?.seatSegments ?? [])
+    .map((segment, segIndex) => ({
+      key: `${detail.flightId}-${segIndex}`,
+      flightId: detail.flightId,
+      origin: segment.origin,
+      destination: segment.destination,
+      airline: segment.airline,
+      flightNumber: segment.flightNumber,
+      operatingAirline: segment.operatingAirline,
+      operatingFlightNumber: segment.operatingFlightNumber,
+      departureDate: segment.departureDate,
+      departureTime: segment.departureTime,
+      options: flattenSeatOptions(segment),
+      paxSlots,
+    }))
+    .filter((segment) => segment.options.length > 0)
+}
+
 const SAMPLE_BOOKING_V6_PAYLOAD = {
   cartId: '6a7c708415abb1611698b0cd',
   contact: {
@@ -256,9 +486,9 @@ const REFERENCE_CHAINS = {
     ['KUL', 'SIN'],
   ],
   3: [
-    ['CGK', 'KUL'],
-    ['KUL', 'SIN'],
-    ['SIN', 'CGK'],
+    ['CGK', 'SIN'],
+    ['SIN', 'KUL'],
+    ['KUL', 'CGK'],
   ],
   4: [
     ['CGK', 'KUL'],
@@ -391,12 +621,24 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
     baggageLoading: false,
     baggageResponse: null,
     baggageError: null,
+    // Keyed by `${paxKey}|${paxIndex}|${flightId}` -> selected weight code, so
+    // the picker in BaggageView can show what's already been applied.
+    baggageSelections: {},
+    baggageSelectionWarning: null,
     mealLoading: false,
     mealResponse: null,
     mealError: null,
+    // Keyed by `${paxKey}|${paxIndex}|${flightId}` -> selected meal code, so
+    // the picker in MealView can show what's already been applied.
+    mealSelections: {},
+    mealSelectionWarning: null,
     seatLoading: false,
     seatResponse: null,
     seatError: null,
+    // Keyed by `${paxKey}|${paxIndex}|${segment.key}` -> selected seat
+    // designator, so the picker in SeatView can show what's already applied.
+    seatSelections: {},
+    seatSelectionWarning: null,
     bookingV6PayloadText: JSON.stringify(SAMPLE_BOOKING_V6_PAYLOAD, null, 2),
     bookingV6Loading: false,
     bookingV6Request: null,
@@ -416,6 +658,43 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
     bookingV7Trace: null,
     bookingV7TraceError: null,
   }),
+  getters: {
+    // Flattens departureMeal + returnMeal into the segments actually worth
+    // showing a picker for (supplier returned zero inputSources otherwise
+    // means nothing to sell on that leg), each annotated with which pax
+    // slots are eligible to buy on it.
+    mealSegments(state) {
+      const departureMeal = state.mealResponse?.departureMeal ?? []
+      const returnMeal = state.mealResponse?.returnMeal ?? []
+      return [...departureMeal, ...returnMeal]
+        .filter((segment) => Array.isArray(segment.inputSources) && segment.inputSources.length > 0)
+        .map((segment) => ({
+          ...segment,
+          paxSlots: buildPaxSlots(segment, { adult: state.adult, child: state.child, infant: state.infant }),
+        }))
+    },
+    // Same idea as mealSegments, over departureBaggage + returnBaggage.
+    baggageSegments(state) {
+      const departureBaggage = state.baggageResponse?.departureBaggage ?? []
+      const returnBaggage = state.baggageResponse?.returnBaggage ?? []
+      return [...departureBaggage, ...returnBaggage]
+        .filter((segment) => Array.isArray(segment.inputSources) && segment.inputSources.length > 0)
+        .map((segment) => ({
+          ...segment,
+          paxSlots: buildPaxSlots(segment, { adult: state.adult, child: state.child, infant: state.infant }),
+        }))
+    },
+    // Seat responses are seat maps rather than flat option lists, so this
+    // flattens departureSeats + returnSeats down to one entry per bookable
+    // segment via buildSeatSegments (see helper above).
+    seatSegments(state) {
+      const departureSeats = state.seatResponse?.departureSeats ?? []
+      const returnSeats = state.seatResponse?.returnSeats ?? []
+      return [...departureSeats, ...returnSeats].flatMap((detail) =>
+        buildSeatSegments(detail, { adult: state.adult, child: state.child, infant: state.infant }),
+      )
+    },
+  },
   actions: {
     addRoute() {
       this.routes.push(emptyRoute())
@@ -453,12 +732,50 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
       this.cartFetchLoading = false
       this.cartFetchResponse = null
       this.cartFetchError = null
+      this.mealSelections = {}
+      this.mealSelectionWarning = null
+      this.baggageSelections = {}
+      this.baggageSelectionWarning = null
+      this.seatSelections = {}
+      this.seatSelectionWarning = null
     },
     fail(err) {
       const activeStep = this.steps.find((s) => s.status === 'active')
       if (activeStep) this.setStepStatus(activeStep.key, 'error', err.message)
       this.error = err.message || 'Something went wrong'
       this.status = 'error'
+    },
+    // Shared by setMealSelection/setBaggageSelection/setSeatSelection: records
+    // the choice for the picker's own display, applies it to both booking
+    // payload textareas, and surfaces a warning if neither payload has that
+    // pax slot yet.
+    applySelection(selectionsField, warningField, applyFn, selectionKey, paxKey, paxIndex, segment, code, label) {
+      if (code) {
+        this[selectionsField][selectionKey] = code
+      } else {
+        delete this[selectionsField][selectionKey]
+      }
+
+      let appliedToAny = false
+      let hadInvalidJson = false
+      for (const key of ['bookingV6PayloadText', 'bookingV7PayloadText']) {
+        const result = applyFn(this[key], paxKey, paxIndex, segment, code)
+        if (result === INVALID_JSON) {
+          hadInvalidJson = true
+        } else if (result !== null) {
+          this[key] = result
+          appliedToAny = true
+        }
+      }
+
+      if (appliedToAny) {
+        this[warningField] = null
+      } else if (hadInvalidJson) {
+        this[warningField] = `Could not append ${label} — one of the booking payloads is not valid JSON.`
+      } else {
+        const singular = paxKey.slice(0, -1)
+        this[warningField] = `Could not append ${label} — no ${singular} at index ${paxIndex + 1} in the booking payloads yet.`
+      }
     },
     async startSearch() {
       this.reset()
@@ -603,6 +920,7 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
         this.cartId = res.data.cartId
         this.cartResponse = res.data
         this.syncCartIdIntoBookingPayloads()
+        this.syncPassengersIntoBookingPayloads()
       } catch (err) {
         this.cartError = err.message || 'Failed to add to cart'
         this.cartResponse = err.body ?? null
@@ -644,6 +962,23 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
         this.baggageLoading = false
       }
     },
+    getBaggageSelectionCode(paxKey, paxIndex, flightId) {
+      return this.baggageSelections[`${paxKey}|${paxIndex}|${flightId}`] || ''
+    },
+    setBaggageSelection(paxKey, paxIndex, segment, code) {
+      const selectionKey = `${paxKey}|${paxIndex}|${segment.flightId}`
+      this.applySelection(
+        'baggageSelections',
+        'baggageSelectionWarning',
+        applyBaggageSelectionToPayloadText,
+        selectionKey,
+        paxKey,
+        paxIndex,
+        segment,
+        code,
+        'baggage',
+      )
+    },
     async fetchMeals() {
       if (!this.cartId) {
         this.mealError = 'No cart ID yet — add a flight to your cart first.'
@@ -661,6 +996,23 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
         this.mealLoading = false
       }
     },
+    getMealSelectionCode(paxKey, paxIndex, flightId) {
+      return this.mealSelections[`${paxKey}|${paxIndex}|${flightId}`] || ''
+    },
+    setMealSelection(paxKey, paxIndex, segment, code) {
+      const selectionKey = `${paxKey}|${paxIndex}|${segment.flightId}`
+      this.applySelection(
+        'mealSelections',
+        'mealSelectionWarning',
+        applyMealSelectionToPayloadText,
+        selectionKey,
+        paxKey,
+        paxIndex,
+        segment,
+        code,
+        'meal',
+      )
+    },
     async fetchSeats() {
       if (!this.cartId) {
         this.seatError = 'No cart ID yet — add a flight to your cart first.'
@@ -677,6 +1029,23 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
       } finally {
         this.seatLoading = false
       }
+    },
+    getSeatSelectionCode(paxKey, paxIndex, segmentKey) {
+      return this.seatSelections[`${paxKey}|${paxIndex}|${segmentKey}`] || ''
+    },
+    setSeatSelection(paxKey, paxIndex, segment, code) {
+      const selectionKey = `${paxKey}|${paxIndex}|${segment.key}`
+      this.applySelection(
+        'seatSelections',
+        'seatSelectionWarning',
+        applySeatSelectionToPayloadText,
+        selectionKey,
+        paxKey,
+        paxIndex,
+        segment,
+        code,
+        'seat',
+      )
     },
     // Keeps the booking payload textareas pointed at whichever cart is
     // actually active, without touching any other field the user may have
@@ -697,22 +1066,29 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
         this[key] = JSON.stringify(payload, null, 2)
       }
     },
-    fillBookingV6Passengers() {
-      this.bookingV6Error = null
-      const trimmed = this.bookingV6PayloadText.trim()
-      let payload = {}
-      if (trimmed) {
-        try {
-          payload = JSON.parse(trimmed)
-        } catch {
-          this.bookingV6Error = 'Payload is not valid JSON — fix it before filling passengers.'
-          return
+    // Keeps both booking payloads' adults/childs/infants matched to the
+    // current search counts, without a manual "Fill passengers" click and
+    // without clobbering any meals/baggages/seats already appended to a pax
+    // (see mergePaxList). Called automatically once a cart exists (right
+    // after addToCart, and again on mount of each Booking view), so the
+    // pax array is always in place by the time the ancillary pickers try to
+    // append a selection into it.
+    syncPassengersIntoBookingPayloads() {
+      for (const key of ['bookingV6PayloadText', 'bookingV7PayloadText']) {
+        const trimmed = this[key].trim()
+        let payload = {}
+        if (trimmed) {
+          try {
+            payload = JSON.parse(trimmed)
+          } catch {
+            continue
+          }
         }
+        payload.adults = mergePaxList(payload.adults, SAMPLE_ADULTS, this.adult)
+        payload.childs = mergePaxList(payload.childs, SAMPLE_CHILDREN, this.child)
+        payload.infants = mergePaxList(payload.infants, SAMPLE_INFANTS, this.infant)
+        this[key] = JSON.stringify(payload, null, 2)
       }
-      payload.adults = buildPaxList(SAMPLE_ADULTS, this.adult)
-      payload.childs = buildPaxList(SAMPLE_CHILDREN, this.child)
-      payload.infants = buildPaxList(SAMPLE_INFANTS, this.infant)
-      this.bookingV6PayloadText = JSON.stringify(payload, null, 2)
     },
     async submitBookingV6() {
       this.bookingV6Error = null
@@ -754,23 +1130,6 @@ export const useMultiCitySearchStore = defineStore('multiCitySearch', {
       } finally {
         this.bookingV6TraceLoading = false
       }
-    },
-    fillBookingV7Passengers() {
-      this.bookingV7Error = null
-      const trimmed = this.bookingV7PayloadText.trim()
-      let payload = {}
-      if (trimmed) {
-        try {
-          payload = JSON.parse(trimmed)
-        } catch {
-          this.bookingV7Error = 'Payload is not valid JSON — fix it before filling passengers.'
-          return
-        }
-      }
-      payload.adults = buildPaxList(SAMPLE_ADULTS, this.adult)
-      payload.childs = buildPaxList(SAMPLE_CHILDREN, this.child)
-      payload.infants = buildPaxList(SAMPLE_INFANTS, this.infant)
-      this.bookingV7PayloadText = JSON.stringify(payload, null, 2)
     },
     async submitBookingV7() {
       this.bookingV7Error = null

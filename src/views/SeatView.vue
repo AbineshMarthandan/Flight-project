@@ -24,6 +24,47 @@ const store = useMultiCitySearchStore()
       <p v-if="store.seatError" class="view-error">{{ store.seatError }}</p>
 
       <section v-if="store.seatResponse" class="view-section">
+        <div v-if="store.seatSegments.length" class="seat-picker">
+          <p class="seat-picker__hint">
+            Selections are appended to <code>seats</code> on the matching passenger in both booking payloads below.
+            Only bookable seats are listed; picking the same seat for more than one passenger is not blocked here.
+          </p>
+
+          <div v-for="segment in store.seatSegments" :key="segment.key" class="seat-segment">
+            <div class="seat-segment__header">
+              <span class="seat-segment__route">{{ segment.origin }} → {{ segment.destination }}</span>
+              <span class="seat-segment__meta">
+                {{ segment.airline }} {{ segment.flightNumber }} · {{ segment.departureDate }} {{ segment.departureTime }}
+              </span>
+            </div>
+
+            <p v-if="!segment.paxSlots.length" class="seat-segment__empty">
+              No eligible passengers for this segment's seat map.
+            </p>
+
+            <div v-else class="seat-segment__slots">
+              <div v-for="slot in segment.paxSlots" :key="`${slot.paxKey}-${slot.paxIndex}`" class="seat-slot">
+                <label class="seat-slot__label">{{ slot.label }}</label>
+                <select
+                  class="seat-slot__select"
+                  :value="store.getSeatSelectionCode(slot.paxKey, slot.paxIndex, segment.key)"
+                  @change="store.setSeatSelection(slot.paxKey, slot.paxIndex, segment, $event.target.value)"
+                >
+                  <option value="">No seat</option>
+                  <option v-for="option in segment.options" :key="option.value" :value="option.value">
+                    {{ option.label }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <p v-if="store.seatSelectionWarning" class="view-error">{{ store.seatSelectionWarning }}</p>
+        </div>
+        <p v-else class="view-empty">No seat options available for this itinerary.</p>
+      </section>
+
+      <section v-if="store.seatResponse" class="view-section">
         <FlightDetailResult :detail="store.seatResponse" title="Seat selection response" />
       </section>
     </template>
@@ -94,5 +135,74 @@ const store = useMultiCitySearchStore()
 .seat-bar__btn:disabled {
   background: var(--color-accent-disabled);
   cursor: not-allowed;
+}
+.seat-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.seat-picker__hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+.seat-picker__hint code {
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+}
+.seat-segment {
+  padding: 1rem 1.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+.seat-segment__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+.seat-segment__route {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.seat-segment__meta {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+.seat-segment__empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+.seat-segment__slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+.seat-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.seat-slot__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-body);
+}
+.seat-slot__select {
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-input-border);
+  background: var(--color-surface);
+  font-size: 0.85rem;
+  color: var(--color-text-body);
+}
+.seat-slot__select:focus {
+  outline: none;
+  border-color: var(--color-accent);
 }
 </style>

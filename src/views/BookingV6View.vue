@@ -8,6 +8,7 @@ const store = useMultiCitySearchStore()
 
 onMounted(() => {
   store.syncCartIdIntoBookingPayloads()
+  store.syncPassengersIntoBookingPayloads()
 })
 </script>
 
@@ -19,10 +20,18 @@ onMounted(() => {
 
     <section class="view-section">
       <div class="booking-bar">
-        <p class="booking-bar__hint">Paste the v6 booking payload, then click Book.</p>
+        <p class="booking-bar__hint">
+          Passengers are filled in automatically from search ({{ store.adult }}A / {{ store.child }}C / {{ store.infant }}I).
+          Paste the v6 booking payload, then click Book.
+        </p>
         <div class="booking-bar__actions">
-          <button type="button" class="booking-bar__btn booking-bar__btn--ghost" @click="store.fillBookingV6Passengers()">
-            Fill passengers ({{ store.adult }}A / {{ store.child }}C / {{ store.infant }}I)
+          <button
+            type="button"
+            class="booking-bar__btn booking-bar__btn--ghost"
+            title="Passengers stay in sync automatically — use this if you change pax counts after landing here."
+            @click="store.syncPassengersIntoBookingPayloads()"
+          >
+            Resync passengers
           </button>
           <button type="button" class="booking-bar__btn" :disabled="store.bookingV6Loading" @click="store.submitBookingV6()">
             {{ store.bookingV6Loading ? 'Booking…' : 'Book' }}

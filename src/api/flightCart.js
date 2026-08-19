@@ -18,6 +18,10 @@ export function addToCart({ cartDetails, currency }) {
   )
 }
 
+export function publishCartCreated(cartId) {
+  return postJson('/__publish-cart', { cartId }, { baseUrl: '' })
+}
+
 export function getCart(cartId) {
   return getJson(`/v6/cart/${encodeURIComponent(cartId)}`, {
     baseUrl: CART_BASE_URL,
